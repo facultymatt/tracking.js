@@ -10,34 +10,33 @@
 
     defaults: {},
 
+    // thresholds 
     getDiffFramePixelArray: function(frame1, frame2) {
       var newFrame = new Array(frame1.data.length / 4);
       for (var i = 0; i < newFrame.length; i++) {
-        newFrame[i] = (Math.abs(frame1.data[i * 4] - frame2.data[i * 4]) +
-          Math.abs(frame1.data[i * 4 + 1] - frame2.data[i * 4 + 1]) +
-          Math.abs(frame1.data[i * 4 + 2] - frame2.data[i * 4 + 2])) / 3;
-        // Threshold and invert
-        if (newFrame[i] > 20) {
-          newFrame[i] = 0;
-        } else {
-          newFrame[i] = 255;
-        }
-      }
+        var red = Math.abs(frame1.data[i * 4] - frame2.data[i * 4]);
+        var green = Math.abs(frame1.data[i * 4 + 1] - frame2.data[i * 4 + 1]);
+        var blue = Math.abs(frame1.data[i * 4 + 2] - frame2.data[i * 4 + 2]);
+        
+        newFrame[i] = (red + green + blue) / 3;
 
+        // Threshold and invert
+        newFrame[i] = newFrame[i] > 20 ? 0 : 255;
+      }
       return newFrame;
     },
 
-    putGreyFrame: function(context, frame, x, y, w, h) {
+    putGreyFrame: function(context, frame, w, h) {
       // @todo w and h need to be passed in
-      var img = context.createImageData(320, 240);
+      var img = context.createImageData(w, h);
 
-      for (var i = 0; i < 320 * 240; i++) {
-        img.data[i * 4 + 3] = 255;
+      for (var i = 0; i < w*h; i++) {
         img.data[i * 4 + 0] = frame[i];
         img.data[i * 4 + 1] = frame[i];
         img.data[i * 4 + 2] = frame[i];
+        img.data[i * 4 + 3] = 255; // alpha
       }
-      context.putImageData(img, x, y);
+      context.putImageData(img, 0,0);
     },
 
     search: function(frame, width, height) {
@@ -45,12 +44,17 @@
       var kTooManyBlobsError = -2;
       var kWrongGeometryError = -3;
       var kMaxBlobsToFind = 30;
-      var kBlobsSearchBorder = 20;
+      //var kBlobsSearchBorder = 20;
+      var kBlobsSearchBorder = 2;
       var kMinBlobsFound = 2;
       var kMaxBlobsFound = 25;
+      // var kMinEyeXSep = 40;
+      // var kMaxEyeXSep = 60;
+      // var kMaxEyeYSep = 40;
+
       var kMinEyeXSep = 40;
       var kMaxEyeXSep = 60;
-      var kMaxEyeYSep = 40;
+      var kMaxEyeYSep = 15;
 
       function pixel(x, y) {
         if (x < 0 || x >= width || y < 0 || y >= height) {
@@ -175,7 +179,12 @@
           ymax = Math.max(y, ymax);
         }
 
-        return {'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax};
+        return {
+          'xmin': xmin,
+          'ymin': ymin,
+          'xmax': xmax,
+          'ymax': ymax
+        };
       }
 
       // Find blobs
@@ -216,7 +225,6 @@
       xSep = Math.abs((blobs[0].xmax + blobs[0].xmin) - (blobs[1].xmax + blobs[1].xmin)) / 2;
       ySep = Math.abs((blobs[0].ymax + blobs[0].ymin) - (blobs[1].ymax + blobs[1].ymin)) / 2;
 
-
       if (xSep < kMinEyeXSep || xSep > kMaxEyeXSep || ySep > kMaxEyeYSep) {
         return [kWrongGeometryError, "Geometry off, xSep:" + xSep + ", ySep:" + ySep];
       }
@@ -243,18 +251,11 @@
         config = trackerGroup[0],
         defaults = instance.defaults,
         imageData = video.getVideoCanvasImageData(),
+        diffCanvas = document.getElementById("diff"),
+        diffCtx = diffCanvas.getContext("2d"),
         canvas = video.canvas,
         height = canvas.get('height'),
-        width = canvas.get('width'),
-        integralImage = new Uint32Array(width * height),
-        integralImageSquare = new Uint32Array(width * height),
-
-        imageLen = 0,
-
-        s,
-        pixel,
-        pixelSum = 0,
-        pixelSumSquare = 0;
+        width = canvas.get('width');
 
       // get current frame
       var currentFrame = imageData;
@@ -270,95 +271,41 @@
       // find diff between current and last
       // this is similar to openCV method
       var diffFramePixelArray = instance.getDiffFramePixelArray(currentFrame, instance.lastFrame);
-      this.diffCanvas = document.getElementById("diff");
-      this.diffCtx = this.diffCanvas.getContext("2d");
-      instance.putGreyFrame(this.diffCtx, diffFramePixelArray, 0, 0, width, height);
+      instance.putGreyFrame(diffCtx, diffFramePixelArray, width, height);
 
       // save current frame for comparison in next track
       instance.lastFrame = currentFrame;
 
+      var res = instance.search(diffFramePixelArray, width, height);
 
-      var res = instance.search(diffFramePixelArray, width, height);      
-
-      if(res[0] !== -1 && res[0] !== -2) {
-        //console.log(res); 
+      if (res[0] !== -1 && res[0] !== -2) {
+        //console.log(res);
       }
 
-      if(res[0] === 0) {
+      if (res[0] === 0) {
         console.log('BLINK!!!');
-        console.log(res);
-      }
+        
+        if (config.onFound) {
+          var trackRes = {
+            rightEye: {
+              x: res[1],
+              y: res[2],
+              width: res[3] - res[1],
+              height: res[4] - res[2]
+            },
+            leftEye: {
+              x: res[5],
+              y: res[6],
+              width: res[7] - res[5],
+              height: res[8] - res[6]
+            }
+          }
 
+          config.onFound.call(video, trackRes);
+        }
 
-
-      // canvas.forEach(imageData, function(r, g, b, a, w, i, j) {
-      //     pixel = ~~(r*0.299 + b*0.587 + g*0.114);
-
-      //     if (i === 0 & j === 0) {
-      //         pixelSum = pixel;
-      //         pixelSumSquare = pixel*pixel;
-      //     }
-      //     else if (i === 0) {
-      //         pixelSum = pixel + integralImage[i*width + (j - 1)];
-      //         pixelSumSquare = pixel*pixel + integralImageSquare[i*width + (j - 1)];
-      //     }
-      //     else if (j === 0) {
-      //         pixelSum = pixel + integralImage[(i - 1)*width + j];
-      //         pixelSumSquare = pixel*pixel + integralImageSquare[(i - 1)*width + j];
-      //     }
-      //     else {
-      //         pixelSum = pixel + integralImage[i*width + (j - 1)] + integralImage[(i - 1)*width + j] - integralImage[(i - 1)*width + (j - 1)];
-      //         pixelSumSquare = pixel*pixel + integralImageSquare[i*width + (j - 1)] + integralImageSquare[(i - 1)*width + j] - integralImageSquare[(i - 1)*width + (j - 1)];
-      //     }
-
-      //     integralImage[imageLen] = pixelSum;
-      //     integralImageSquare[imageLen] = pixelSumSquare;
-      //     imageLen++;
-      // });
-
-      var i,
-        j,
-        blockJump = defaults.blockJump,
-        blockScale = defaults.blockScale,
-        blockSize = defaults.blockSize,
-        maxBlockSize = Math.min(width, height),
-        rectIndex = 0,
-        rects = [];
-
-      // for (; blockSize <= maxBlockSize; blockSize = ~~(blockSize*blockScale)) {
-      //     for (i = 0; i < (height - blockSize); i+=blockJump) {
-      //         for (j = 0; j < (width - blockSize); j+=blockJump) {
-      //             var pass = true;
-
-      //             for (s = 0; s < stagesLen; s++) {
-      //                 var stage = stages[s];
-
-      //                 pass = instance.evalStage_(stage, integralImage, integralImageSquare, i, j, width, height, blockSize);
-
-      //                 if (!pass) {
-      //                     break;
-      //                 }
-      //             }
-
-      //             if (pass) {
-      //                 rects[rectIndex++] = {
-      //                     size: blockSize,
-      //                     x: j,
-      //                     y: i
-      //                 };
-
-      //                 // canvas.context.strokeStyle = "rgb(255,0,0)";
-      //                 // canvas.context.strokeRect(j, i, blockSize, blockSize);
-      //             }
-      //         }
-      //     }
-      // }
-
-      if (config.onFound) {
-        config.onFound.call(video, video);
       }
     }
-
   };
 
 }(window));

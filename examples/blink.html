@@ -36,8 +36,20 @@
     videoCamera.track({
         type: 'blink',
         onFound: function(track) {
-            if (track[0]) {
-                console.log("Something found! ", track[0]);
+            if (track) {
+                console.log("Something found! ", track);
+
+                ctx.strokeStyle = "rgb(0,255,0)";
+                ctx.strokeRect(track.leftEye.x, 
+                               track.leftEye.y, 
+                               track.leftEye.width, 
+                               track.leftEye.height);
+
+                ctx.strokeRect(track.rightEye.x, 
+                               track.rightEye.y, 
+                               track.rightEye.width, 
+                               track.rightEye.height);
+
             }
         }
     });
