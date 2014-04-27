@@ -45,7 +45,7 @@
       var kWrongGeometryError = -3;
       var kMaxBlobsToFind = 30;
       //var kBlobsSearchBorder = 20;
-      var kBlobsSearchBorder = 2;
+      var kBlobsSearchBorder = 20;
       var kMinBlobsFound = 2;
       var kMaxBlobsFound = 25;
       // var kMinEyeXSep = 40;
@@ -53,8 +53,10 @@
       // var kMaxEyeYSep = 40;
 
       var kMinEyeXSep = 40;
-      var kMaxEyeXSep = 60;
-      var kMaxEyeYSep = 15;
+      //var kMaxEyeXSep = 60;
+      var kMaxEyeXSep = 100;
+      //var kMaxEyeYSep = 40;
+      var kMaxEyeYSep = 100;
 
       function pixel(x, y) {
         if (x < 0 || x >= width || y < 0 || y >= height) {
@@ -198,7 +200,7 @@
             xmax = temp.xmax;
             ymin = temp.ymin;
             ymax = temp.ymax;
-            if ((xmax - xmin) * (ymax - ymin) > 5) {
+            if ((xmax - xmin) * (ymax - ymin) > 10) {
               blobs.push({
                 xmin: xmin,
                 ymin: ymin,
@@ -224,6 +226,9 @@
       // Check dimensions
       xSep = Math.abs((blobs[0].xmax + blobs[0].xmin) - (blobs[1].xmax + blobs[1].xmin)) / 2;
       ySep = Math.abs((blobs[0].ymax + blobs[0].ymin) - (blobs[1].ymax + blobs[1].ymin)) / 2;
+
+  console.log("Geometry is, xSep:" + xSep + ", ySep:" + ySep);
+
 
       if (xSep < kMinEyeXSep || xSep > kMaxEyeXSep || ySep > kMaxEyeYSep) {
         return [kWrongGeometryError, "Geometry off, xSep:" + xSep + ", ySep:" + ySep];
