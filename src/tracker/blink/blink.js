@@ -1,3 +1,11 @@
+
+/*
+Adds blink detection to tracking.js. Utilizes methods found
+here: http://gddbeijing.appspot.com/blink.html 
+and here: https://github.com/rehabstudio/blink-detect
+
+*/
+
 (function(window, undefined) {
 
   var isString = tracking.isString,
