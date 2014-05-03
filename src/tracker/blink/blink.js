@@ -86,15 +86,20 @@
       // was the default
       traceRepeatMax: 300,
 
-       // how many blobs to find
+      // how many blobs to find
       kMaxBlobsToFind: 30,
 
-      // minimum difference between max and min eye blobs
+      // minimum difference in blob movement to consider this
+      // blob as eye movement. Movements greater then this will be 
+      // pushed into blob array. Smaller will be ignored. 
+      // High numbers will cause drastic movements to trigger false positives.
+      //
       // needed to trigger blink. Higher numbers will require more dramatic
       // open -> close movements, while lower number will detect
       // more subtle blinks. Too low and any movement will trigger false 
       // positives. 10 is default but 8 is nice for subtle blinks 
-      minDiffForBlink: 10,
+      // 5 was the original
+      minDiffToPushBlob: 10,
 
       // geometry used to determine if blobs are eyes. If blobs are
       // too far apart or blobs are too off level then we reject them
@@ -173,10 +178,10 @@
 
         for (var count = 0; count < maxCount; count++) {
           var found = false;
-          
+
           // gone full circle
           if ((x == i) && (y == j)) {
-            break; 
+            break;
           }
 
           //   /3\
@@ -303,7 +308,7 @@
             var xmax = temp.xmax;
             var ymin = temp.ymin;
             var ymax = temp.ymax;
-            if ((xmax - xmin) * (ymax - ymin) > settings.minDiffForBlink) {
+            if ((xmax - xmin) * (ymax - ymin) > settings.minDiffToPushBlob) {
               blobs.push({
                 xmin: xmin,
                 ymin: ymin,
@@ -327,8 +332,14 @@
 
       //sorting by something! 
       // this is an array of blobs
+      // blobs.sort(function(a, b) {
+      //   return (b.xmax - b.xmin) * (b.ymax - b.ymin) - (a.xmax - a.xmin) * (a.ymax - a.ymin);
+      // });
+
+      // change between + and -. + will be trigger blinks 
+      // but more false positives too
       blobs.sort(function(a, b) {
-        return (b.xmax - b.xmin) * (b.ymax - b.ymin) - (a.xmax - a.xmin) * (a.ymax - a.ymin);
+        (b.xmax - b.xmin) * (b.ymax - b.ymin) - (a.xmax - a.xmin) * (a.ymax - a.ymin)
       });
 
       // Check dimensions
