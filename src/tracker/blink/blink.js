@@ -1,11 +1,55 @@
 'use strict';
 
 /*
- * Adds blink detection to tracking.js 
+ * BLINK!!!
+ *
+ * Adds blink detection to tracking.js
  *
  * Utilizes methods found
  * here: http://gddbeijing.appspot.com/blink.html
  * and here: https://github.com/rehabstudio/blink-detect
+ *
+ ******
+ *
+ * CONFIGURE
+ *
+ * There are many configuration variables you can pass in as
+ * a settings hash. See the example for a few. See the defaults hash
+ * below for clear documentation on what they do. 
+ *
+ ******
+ *
+ * OPTIONALLY RENDER PIXELATED THRESHOLD IMAGE
+ *
+ * Optionally you can render the pixel difference canvas
+ * (which is used in the calculations and good for debugging settings)
+ * by including a canvas on your page with the id of `diff`.
+ *
+ * for example: 
+    <canvas id="diff" width="320" height="240"></canvas>
+ *
+ * This canvas will be automatically filled with the pixelized 
+ * image if available. It should be the same size as the main canvas. 
+ *
+ ******
+ *
+ * CALLBACKS
+ *
+ * The following are called on every track loop. 
+ * See methods for documentation on the parameters. 
+ *
+ * @param {number} code, will indicate status as set in defaults. 
+ * @param {object or string} message, will have extra debugging info
+ *
+ * #onNotFound(code, message)
+ *
+ * @param {object} track, a hash containing the left/ right eye rectangle points
+ * 
+ * #onFound(track)
+ *
+ * #onLoop()
+ *
+ ******
  *
  */
 
@@ -16,32 +60,64 @@
     NAME: 'BLINK',
 
     defaults: {
-      
+
       // error codes. In general don't change these
       kNoBlobsError: -1,
       kTooManyBlobsError: -2,
       kWrongGeometryError: -3,
 
+      // higher numbers will render more black pixels and more noise
+      // and more noise in your image
+      threshold: 20,
+
+      // Used in our heuristic blob tracking algorithm to 
+      // define are within canvas to track.
+      //
+      // A setting of 20 and a canvas with height of 240px 
+      // will track from 20 - 220 pixels
+      //  
+      // Higher numbers will be less likely to find eyes.
+      // Higher numbers tend to be less accurate while smaller 
+      // numbers tend to create more false positives
+      kBlobsSearchBorder: 20,
+
+      // how many times to repeat our heuristic tracking loop
+      // not sure what this does but 300 seems to work nicely and 
+      // was the default
+      traceRepeatMax: 300,
+
+       // how many blobs to find
       kMaxBlobsToFind: 30,
 
-      // higher number, less accurate
-      kBlobsSearchBorder: 20,
-      
+      // minimum difference between max and min eye blobs
+      // needed to trigger blink. Higher numbers will require more dramatic
+      // open -> close movements, while lower number will detect
+      // more subtle blinks. Too low and any movement will trigger false 
+      // positives. 10 is default but 8 is nice for subtle blinks 
+      minDiffForBlink: 10,
+
+      // geometry used to determine if blobs are eyes. If blobs are
+      // too far apart or blobs are too off level then we reject them
+      // as not being eyes. This provides a relatively low resource way
+      // to reduce false positives.
+      kMinEyeXSep: 40,
+      kMaxEyeXSep: 60,
+      kMaxEyeYSep: 40,
+
       // 1 throws errors because we need at least 2 blobs
       // so we can compare their positions
-      kMinBlobsFound: 2, 
+      kMinBlobsFound: 2,
 
-      // if set too high, drastic movements will trigger
-      kMaxBlobsFound: 25,
+      // cutoff where we assume there is more drastic movements then
+      // eye blink, for example a moving head or hand. 
+      // if set too high, drastic movements will trigger false positive blinks
+      kMaxBlobsFound: 25
 
-      kMinEyeXSep: 40, // default 40
-      kMaxEyeXSep: 60, // default 60
-      kMaxEyeYSep: 40 // default 40
     },
 
     // thresholds 
     getDiffFramePixelArray: function(frame1, frame2) {
-      var newFrame = new Array(frame1.data.length / 4);
+      var newFrame = new Int32Array(frame1.data.length / 4);
       for (var i = 0; i < newFrame.length; i++) {
         var red = Math.abs(frame1.data[i * 4] - frame2.data[i * 4]);
         var green = Math.abs(frame1.data[i * 4 + 1] - frame2.data[i * 4 + 1]);
@@ -49,10 +125,8 @@
 
         newFrame[i] = (red + green + blue) / 3;
 
-        var thres = 20;
-
         // Threshold and invert
-        newFrame[i] = newFrame[i] > thres ? 0 : 255;
+        newFrame[i] = newFrame[i] > this.settings.threshold ? 0 : 255;
       }
       return newFrame;
     },
@@ -88,7 +162,7 @@
       // its close enough for our needs
       // and fast performing 
 
-      function tracePerim(i, j) {
+      function tracePerim(i, j, maxCount) {
         var x = i;
         var y = j + 1;
         var xmin = i;
@@ -97,9 +171,13 @@
         var ymax = j;
         var dir = 1;
 
-        for (var count = 0; count < 300; count++) {
+        for (var count = 0; count < maxCount; count++) {
           var found = false;
-          if ((x == i) && (y == j)) break; // gone full circle
+          
+          // gone full circle
+          if ((x == i) && (y == j)) {
+            break; 
+          }
 
           //   /3\
           // 2<   >4
@@ -220,12 +298,12 @@
         }
         for (var j = settings.kBlobsSearchBorder; j < width - settings.kBlobsSearchBorder; j++) {
           if (pixel(j, h) === 0 && pixel(j, h - 1) !== 0) {
-            var temp = tracePerim(j, h);
+            var temp = tracePerim(j, h, settings.traceRepeatMax);
             var xmin = temp.xmin;
             var xmax = temp.xmax;
             var ymin = temp.ymin;
             var ymax = temp.ymax;
-            if ((xmax - xmin) * (ymax - ymin) > 10) {
+            if ((xmax - xmin) * (ymax - ymin) > settings.minDiffForBlink) {
               blobs.push({
                 xmin: xmin,
                 ymin: ymin,
@@ -289,7 +367,6 @@
         config = trackerGroup[0],
         imageData = video.getVideoCanvasImageData(),
         diffCanvas = document.getElementById('diff'),
-        diffCtx = diffCanvas.getContext('2d'),
         canvas = video.canvas,
         height = canvas.get('height'),
         width = canvas.get('width');
@@ -312,7 +389,13 @@
       // find diff between current and last
       // this is similar to openCV method
       var diffFramePixelArray = instance.getDiffFramePixelArray(currentFrame, instance.lastFrame);
-      instance.putGreyFrame(diffCtx, diffFramePixelArray, width, height);
+
+      // if DOM element with id `diff` exists automatically 
+      // render the pixelated image within the canvas 
+      if (diffCanvas) {
+        var diffCtx = diffCanvas.getContext('2d');
+        instance.putGreyFrame(diffCtx, diffFramePixelArray, width, height);
+      }
 
       // save current frame for comparison in next track
       instance.lastFrame = currentFrame;
@@ -328,9 +411,7 @@
         if (config.onNotFound) {
           config.onNotFound.call(video, res[0], res[1]);
         }
-      }
-
-      else if(res[0] === settings.kTooManyBlobsError) {
+      } else if (res[0] === settings.kTooManyBlobsError) {
         if (config.onNotFound) {
           config.onNotFound.call(video, res[0], res[1]);
         }
@@ -371,6 +452,12 @@
           config.onNotFound.call(video, 'unknown error');
         }
       }
+
+      // called on every loop regardless of tracking found
+      if (config.onLoop) {
+        config.onLoop.call(video);
+      }
+
     }
   };
 

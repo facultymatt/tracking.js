@@ -41,6 +41,8 @@
 
     $('#blink').hide();
 
+    var time, eyes;
+
     videoCamera.track({
         type: 'blink',
         __settings: {
@@ -55,14 +57,26 @@
             kMaxEyeYSep: 100
         },
         settings: {
-            name: 'general',
+            name: 'general_head_full_view',
             kMaxBlobsToFind: 30,
-            kBlobsSearchBorder: 2,
+            kBlobsSearchBorder: 20, // or 20
             kMinBlobsFound: 2,
             kMaxBlobsFound: 25,
+            minDiffForBlink: 8,
             kMinEyeXSep: 50,
             kMaxEyeXSep: 120,
-            kMaxEyeYSep: 100
+            kMaxEyeYSep: 40
+        },
+        __settings: {
+            name: 'general_close_up',
+            kMaxBlobsToFind: 200,
+            threshold: 20,
+            kBlobsSearchBorder: 2,
+            kMinBlobsFound: 2,
+            kMaxBlobsFound: 200,
+            kMinEyeXSep: 50,
+            kMaxEyeXSep: 200,
+            kMaxEyeYSep: 20
         },
         __settings: {
             name: 'sensitive',
@@ -75,46 +89,40 @@
             kMaxEyeYSep: 10
         },
 
-        // add onLoop method which runs in sync with request animation frame
+        onLoop: function() {
+            //console.log('-- looping');
+            if (eyes) {
+                ctx.strokeStyle = "rgb(0,255,0)";
+                ctx.strokeRect(eyes.leftEye.x,
+                    eyes.leftEye.y,
+                    eyes.leftEye.width,
+                    eyes.leftEye.height);
+
+                ctx.strokeRect(eyes.rightEye.x,
+                    eyes.rightEye.y,
+                    eyes.rightEye.width,
+                    eyes.rightEye.height);
+            }
+        },
         onNotFound: function(code, message) {
-            console.log(message);
+            //console.log(message);
         },
         onFound: function(track) {
             if (track) {
 
                 $('#blink').show();
                 $('body').css('background', 'red');
-                console.log("Something found! ", track);
 
-                var time;
+                eyes = track; // store eye positions
+
                 clearTimeout(time); // clear out timeout
 
                 time = setTimeout(function() {
                     clearTimeout(time);
                     $('#blink').hide();
+                    eyes = null;
                     $('body').css('background', 'white');
-                }, 400);
-
-                ctx.strokeRect(track.leftEye.x,
-                    track.leftEye.y,
-                    track.leftEye.width,
-                    track.leftEye.height);
-
-                ctx.strokeRect(track.rightEye.x,
-                    track.rightEye.y,
-                    track.rightEye.width,
-                    track.rightEye.height);
-
-                // ctx.strokeStyle = "rgb(0,255,0)";
-                // ctx.strokeRect(track.leftEye.x,
-                //     track.leftEye.y,
-                //     track.leftEye.width,
-                //     track.leftEye.height);
-
-                // ctx.strokeRect(track.rightEye.x,
-                //     track.rightEye.y,
-                //     track.rightEye.width,
-                //     track.rightEye.height);
+                }, 1000);
 
             }
         }
