@@ -1,14 +1,15 @@
-/*
-Adds blink detection to tracking.js. Utilizes methods found
-here: http://gddbeijing.appspot.com/blink.html 
-and here: https://github.com/rehabstudio/blink-detect
+'use strict';
 
-*/
+/*
+ * Adds blink detection to tracking.js 
+ *
+ * Utilizes methods found
+ * here: http://gddbeijing.appspot.com/blink.html
+ * and here: https://github.com/rehabstudio/blink-detect
+ *
+ */
 
 (function(window, undefined) {
-
-  var isString = tracking.isString;
-  var distance = tracking.math.distance;
 
   tracking.type.BLINK = {
 
@@ -77,16 +78,16 @@ and here: https://github.com/rehabstudio/blink-detect
       // and fast performing 
 
       function tracePerim(i, j) {
-        x = i;
-        y = j + 1;
-        xmin = i
-        xmax = i;
-        ymin = j;
-        ymax = j;
-        dir = 1;
+        var x = i;
+        var y = j + 1;
+        var xmin = i;
+        var xmax = i;
+        var ymin = j;
+        var ymax = j;
+        var dir = 1;
 
-        for (count = 0; count < 300; count++) {
-          found = false;
+        for (var count = 0; count < 300; count++) {
+          var found = false;
           if ((x == i) && (y == j)) break; // gone full circle
 
           //   /3\
@@ -94,91 +95,91 @@ and here: https://github.com/rehabstudio/blink-detect
           //   \1/   
 
           if (!found && dir == 1) { // Downwards
-            if (!found && pixel(x - 1, y) == 0) {
+            if (!found && pixel(x - 1, y) === 0) {
               x--;
               found = true;
               dir = 2;
             }
-            if (!found && pixel(x, y + 1) == 0) {
+            if (!found && pixel(x, y + 1) === 0) {
               y++;
               found = true;
               dir = 1;
             }
-            if (!found && pixel(x + 1, y) == 0) {
+            if (!found && pixel(x + 1, y) === 0) {
               x++;
               found = true;
               dir = 4;
             }
-            if (!found && pixel(x, y - 1) == 0) {
+            if (!found && pixel(x, y - 1) === 0) {
               y--;
               found = true;
               dir = 3;
             }
           }
 
-          if (!found && dir == 4) { // Rightwards
-            if (!found && pixel(x, y + 1) == 0) {
+          if (!found && dir === 4) { // Rightwards
+            if (!found && pixel(x, y + 1) === 0) {
               y++;
               found = true;
               dir = 1;
             }
-            if (!found && pixel(x + 1, y) == 0) {
+            if (!found && pixel(x + 1, y) === 0) {
               x++;
               found = true;
               dir = 4;
             }
-            if (!found && pixel(x, y - 1) == 0) {
+            if (!found && pixel(x, y - 1) === 0) {
               y--;
               found = true;
               dir = 3;
             }
-            if (!found && pixel(x - 1, y) == 0) {
+            if (!found && pixel(x - 1, y) === 0) {
               x--;
               found = true;
               dir = 2;
             }
           }
 
-          if (!found && dir == 3) { // Upwards
-            if (!found && pixel(x + 1, y) == 0) {
+          if (!found && dir === 3) { // Upwards
+            if (!found && pixel(x + 1, y) === 0) {
               x++;
               found = true;
               dir = 4;
             }
-            if (!found && pixel(x, y - 1) == 0) {
+            if (!found && pixel(x, y - 1) === 0) {
               y--;
               found = true;
               dir = 3;
             }
-            if (!found && pixel(x - 1, y) == 0) {
+            if (!found && pixel(x - 1, y) === 0) {
               x--;
               found = true;
               dir = 2;
             }
-            if (!found && pixel(x, y + 1) == 0) {
+            if (!found && pixel(x, y + 1) === 0) {
               y++;
               found = true;
               dir = 1;
             }
           }
 
-          if (!found && dir == 2) { // Leftwards
-            if (!found && pixel(x, y - 1) == 0) {
+          if (!found && dir === 2) { // Leftwards
+            if (!found && pixel(x, y - 1) === 0) {
               y--;
               found = true;
               dir = 3;
             }
-            if (!found && pixel(x - 1, y) == 0) {
+            if (!found && pixel(x - 1, y) === 0) {
               x--;
               found = true;
               dir = 2;
             }
-            if (!found && pixel(x, y + 1) == 0) {
+            if (!found && pixel(x, y + 1) === 0) {
               y++;
               found = true;
               dir = 1;
             }
-            if (!found && pixel(x + 1, y) == 0) {
+            if (!found && pixel(x + 1, y) === 0) {
               x++;
               found = true;
               dir = 4;
@@ -201,16 +202,16 @@ and here: https://github.com/rehabstudio/blink-detect
       // Find blobs
       // settings.kBlobsSearchBorder is the area within the camera
       // that we search within? Smaller numbers should be better performance 
-      var blobs = new Array();
-      for (h = settings.kBlobsSearchBorder; h < height - settings.kBlobsSearchBorder; h++) {
+      var blobs = [];
+      for (var h = settings.kBlobsSearchBorder; h < height - settings.kBlobsSearchBorder; h++) {
         if (blobs.length >= settings.kMaxBlobsToFind) break;
-        for (j = settings.kBlobsSearchBorder; j < width - settings.kBlobsSearchBorder; j++) {
-          if (pixel(j, h) == 0 && pixel(j, h - 1) != 0) {
+        for (var j = settings.kBlobsSearchBorder; j < width - settings.kBlobsSearchBorder; j++) {
+          if (pixel(j, h) === 0 && pixel(j, h - 1) !== 0) {
             var temp = tracePerim(j, h);
-            xmin = temp.xmin;
-            xmax = temp.xmax;
-            ymin = temp.ymin;
-            ymax = temp.ymax;
+            var xmin = temp.xmin;
+            var xmax = temp.xmax;
+            var ymin = temp.ymin;
+            var ymax = temp.ymax;
             if ((xmax - xmin) * (ymax - ymin) > 10) {
               blobs.push({
                 xmin: xmin,
@@ -228,25 +229,30 @@ and here: https://github.com/rehabstudio/blink-detect
       // if this is the case then return with the proper
       // res code right away. No need to run further maths.
       if (blobs.length < settings.kMinBlobsFound) {
-        return [settings.kNoBlobsError, "No blobs"];
+        return [settings.kNoBlobsError, 'No Blobs'];
       } else if (blobs.length > settings.kMaxBlobsFound) {
-        return [settings.kTooManyBlobsError, "Too many blobs"];
+        return [settings.kTooManyBlobsError, 'Too many blobs'];
       }
 
       // sorting by something! 
       blobs.sort(function(a, b) {
-        (b.xmax - b.xmin) * (b.ymax - b.ymin) - (a.xmax - a.xmin) * (a.ymax - a.ymin)
+        return (b.xmax - b.xmin) * (b.ymax - b.ymin) - (a.xmax - a.xmin) * (a.ymax - a.ymin);
       });
 
       // Check dimensions
-      xSep = Math.abs((blobs[0].xmax + blobs[0].xmin) - (blobs[1].xmax + blobs[1].xmin)) / 2;
-      ySep = Math.abs((blobs[0].ymax + blobs[0].ymin) - (blobs[1].ymax + blobs[1].ymin)) / 2;
+      var xNum = Math.abs((blobs[0].xmax + blobs[0].xmin) - (blobs[1].xmax + blobs[1].xmin));
+      var yNum = Math.abs((blobs[0].ymax + blobs[0].ymin) - (blobs[1].ymax + blobs[1].ymin));
+      var xSep = xNum / 2;
+      var ySep = yNum / 2;
+      console.log(xNum, yNum);
 
       // we check geometry because eyes are generally a certain 
       // distance apart and are generally level. 
       if (xSep < settings.kMinEyeXSep || xSep > settings.kMaxEyeXSep || ySep > settings.kMaxEyeYSep) {
-        return [settings.kWrongGeometryError, "Geometry off, xSep:" + xSep + ", ySep:" + ySep];
+        return [settings.kWrongGeometryError, 'Geometry off, xSep:' + xSep + ', ySep:' + ySep];
       }
+
+      var l, r;
 
       // Find which eye is which
       if (blobs[0].xmax < blobs[1].xmax) {
@@ -258,8 +264,8 @@ and here: https://github.com/rehabstudio/blink-detect
       }
 
       // Expand bounding boxes
-      dx = 3;
-      dy = 3;
+      var dx = 3;
+      var dy = 3;
 
       // return array with eye positions and maths
       return [0, blobs[l].xmin - dx, blobs[l].ymin - dy, blobs[l].xmax + dx, blobs[l].ymax + dy, blobs[r].xmin - dx, blobs[r].ymin - dy, blobs[r].xmax + dx, blobs[r].ymax + dy];
@@ -268,10 +274,9 @@ and here: https://github.com/rehabstudio/blink-detect
     track: function(trackerGroup, video) {
       var instance = this,
         config = trackerGroup[0],
-        defaults = instance.defaults,
         imageData = video.getVideoCanvasImageData(),
-        diffCanvas = document.getElementById("diff"),
-        diffCtx = diffCanvas.getContext("2d"),
+        diffCanvas = document.getElementById('diff'),
+        diffCtx = diffCanvas.getContext('2d'),
         canvas = video.canvas,
         height = canvas.get('height'),
         width = canvas.get('width');
@@ -287,7 +292,9 @@ and here: https://github.com/rehabstudio/blink-detect
       // store the last frame on first run of track
       // without this our diffImage fn will throw error
       // @todo(matt) optimize this
-      if (instance.lastFrame == null) {
+
+      if (instance.lastFrame === undefined) {
+        console.log(instance.lastFrame);
         instance.lastFrame = currentFrame;
         return;
       }
@@ -307,15 +314,19 @@ and here: https://github.com/rehabstudio/blink-detect
 
       // not a blink!
       // no blobs or too many blobs! 
-      if (res[0] === settings.kNoBlobsError || res[0] === settings.kTooManyBlobsError) {
+      if (res[0] === settings.kNoBlobsError) {
+        //console.log("no blobs");
+      }
 
+      else if(res[0] === settings.kTooManyBlobsError) {
+        //console.log("too many!");
       }
 
       // wrong eye geometry
       // there is movement but the blobs are not in the proper
       // places so they are most likely not eyes. 
       else if (res[0] === settings.kWrongGeometryError) {
-
+        console.log("wrong geometry", res[1]);
       }
 
       // a blink!
@@ -335,7 +346,7 @@ and here: https://github.com/rehabstudio/blink-detect
               width: res[7] - res[5],
               height: res[8] - res[6]
             }
-          }
+          };
 
           config.onFound.call(video, trackRes);
         }

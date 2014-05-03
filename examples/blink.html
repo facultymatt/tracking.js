@@ -55,13 +55,15 @@
         // },
         settings: {
             kMaxBlobsToFind: 30,
-            kBlobsSearchBorder: 20,
-            kMinBlobsFound: 2,
-            kMaxBlobsFound: 25,
+            kBlobsSearchBorder: 20, // higher number, less accurate
+            kMinBlobsFound: 2, // 1 throws errors because we access [1]
+            
+            // if set too high, drastic movements will trigger
+            kMaxBlobsFound: 25, 
 
             kMinEyeXSep: 40, // default 40
-            kMaxEyeXSep: 80, // default 60
-            kMaxEyeYSep: 80 // default 40
+            kMaxEyeXSep: 100, // default 60
+            kMaxEyeYSep: 100 // default 40
         },
         onFound: function(track) {
             if (track) {
@@ -70,15 +72,12 @@
                 console.log("Something found! ", track);
 
                 var time;
-
                 clearTimeout(time);
 
                 time = setTimeout(function() {
                     clearTimeout(time);
                     $('#blink').hide();
-                }, 2000);
-
-
+                }, 800);
 
                 ctx.strokeStyle = "rgb(0,255,0)";
                 ctx.strokeRect(track.leftEye.x,
