@@ -16,7 +16,20 @@ and here: https://github.com/rehabstudio/blink-detect
 
     NAME: 'BLINK',
 
-    defaults: {},
+    defaults: {
+      kNoBlobsError: -1,
+      kTooManyBlobsError: -2,
+      kWrongGeometryError: -3,
+
+      kMaxBlobsToFind: 30,
+      kBlobsSearchBorder: 20,
+      kMinBlobsFound: 2,
+      kMaxBlobsFound: 25,
+
+      kMinEyeXSep: 40, // default 40
+      kMaxEyeXSep: 100, // default 60
+      kMaxEyeYSep: 100 // default 40
+    },
 
     // thresholds 
     getDiffFramePixelArray: function(frame1, frame2) {
