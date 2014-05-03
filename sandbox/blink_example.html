@@ -1,0 +1,29 @@
+<html>
+
+<head>
+    <title>Blink detection using &lt;video&gt;, &lt;canvas&gt;, and Web Workers</title>
+    <script type="text/javascript;version=1.8" src="blinktracker.js"></script>
+    <style type="text/css"></style>
+</head>
+
+<body onload="processor.onLoad()">
+    <div id="main" style="position: absolute; left: 5px; top: 5px; width: 343px; height: 540px; border: 1px solid #000;">
+        <div id="controls" style="position: absolute; left: 10px; top: 5px; width: 320px; height: 20px; border: 1px solid #000;">
+            <button onclick="document.getElementById('video').play()">Play</button>&nbsp;
+            <button onclick="document.getElementById('video').pause()">Pause</button>
+        </div>
+        <div id="label" style="position: absolute;left: 115px; top: 5px; width: 215px; height: 20px; border: 1px solid #000;">
+        </div>
+
+        <!-- Main video and its canvas projection -->
+        <video id="video" src="blinkvideo.ogg" style="width: 320px; height: 240px; position: absolute; left: 10px; top: 35px; border: 1px solid #000;"></video>
+        <canvas id="out" width="320" height="240" style="position: absolute; left: 10px; top: 35px;"></canvas>
+
+        <!-- Monitoring canvas and audio -->
+        <canvas id="diff" width="320" height="240" style="position: absolute; left: 10px; top: 285; border: 1px solid #000;"></canvas>
+        <audio id="audio" src="blinkaudio.wav"></audio>
+    </div>
+
+</body>
+
+</html>

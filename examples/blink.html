@@ -1,5 +1,6 @@
 <!doctype html>
 <html>
+
 <head>
 
     <title>tracking.js - Human Glasses</title>
@@ -8,6 +9,7 @@
 
     <script src="../src/tracking.js"></script>
     <script src="../src/tracker/blink/blink.js"></script>
+    <script src="js/jquery.js"></script>
 
     <style>
     * {
@@ -24,38 +26,78 @@
     </style>
 
 </head>
+
 <body>
 
     <h1>Diff Image</h1>
+
+    <h1 id="blink">BLINK!!!</h1>
+
     <canvas id="diff" width="320" height="240"></canvas>
 
     <script>
     var videoCamera = new tracking.VideoCamera().hide().render().renderVideoCanvas(),
         ctx = videoCamera.canvas.context;
 
+        $('#blink').hide();
+
     videoCamera.track({
         type: 'blink',
+        // settings: {
+        //     kMaxBlobsToFind: 30,
+        //     kBlobsSearchBorder: 20,
+        //     kMinBlobsFound: 2,
+        //     kMaxBlobsFound: 25,
+
+        //     kMinEyeXSep: 40, // default 40
+        //     kMaxEyeXSep: 100, // default 60
+        //     kMaxEyeYSep: 100 // default 40
+        // },
+        settings: {
+            kMaxBlobsToFind: 30,
+            kBlobsSearchBorder: 20,
+            kMinBlobsFound: 2,
+            kMaxBlobsFound: 25,
+
+            kMinEyeXSep: 40, // default 40
+            kMaxEyeXSep: 80, // default 60
+            kMaxEyeYSep: 80 // default 40
+        },
         onFound: function(track) {
             if (track) {
+
+                $('#blink').show();
                 console.log("Something found! ", track);
 
-                ctx.strokeStyle = "rgb(0,255,0)";
-                ctx.strokeRect(track.leftEye.x, 
-                               track.leftEye.y, 
-                               track.leftEye.width, 
-                               track.leftEye.height);
+                var time;
 
-                ctx.strokeRect(track.rightEye.x, 
-                               track.rightEye.y, 
-                               track.rightEye.width, 
-                               track.rightEye.height);
+                clearTimeout(time);
+
+                time = setTimeout(function() {
+                    clearTimeout(time);
+                    $('#blink').hide();
+                }, 2000);
+
+
+
+                ctx.strokeStyle = "rgb(0,255,0)";
+                ctx.strokeRect(track.leftEye.x,
+                    track.leftEye.y,
+                    track.leftEye.width,
+                    track.leftEye.height);
+
+                ctx.strokeRect(track.rightEye.x,
+                    track.rightEye.y,
+                    track.rightEye.width,
+                    track.rightEye.height);
 
             }
         }
     });
     </script>
 
-
+    
 
 </body>
+
 </html>

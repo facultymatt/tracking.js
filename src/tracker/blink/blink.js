@@ -1,4 +1,3 @@
-
 /*
 Adds blink detection to tracking.js. Utilizes methods found
 here: http://gddbeijing.appspot.com/blink.html 
@@ -8,9 +7,8 @@ and here: https://github.com/rehabstudio/blink-detect
 
 (function(window, undefined) {
 
-  var isString = tracking.isString,
-
-    distance = tracking.math.distance;
+  var isString = tracking.isString;
+  var distance = tracking.math.distance;
 
   tracking.type.BLINK = {
 
@@ -38,7 +36,7 @@ and here: https://github.com/rehabstudio/blink-detect
         var red = Math.abs(frame1.data[i * 4] - frame2.data[i * 4]);
         var green = Math.abs(frame1.data[i * 4 + 1] - frame2.data[i * 4 + 1]);
         var blue = Math.abs(frame1.data[i * 4 + 2] - frame2.data[i * 4 + 2]);
-        
+
         newFrame[i] = (red + green + blue) / 3;
 
         // Threshold and invert
@@ -48,36 +46,24 @@ and here: https://github.com/rehabstudio/blink-detect
     },
 
     putGreyFrame: function(context, frame, w, h) {
-      // @todo w and h need to be passed in
       var img = context.createImageData(w, h);
-
-      for (var i = 0; i < w*h; i++) {
+      for (var i = 0; i < w * h; i++) {
         img.data[i * 4 + 0] = frame[i];
         img.data[i * 4 + 1] = frame[i];
         img.data[i * 4 + 2] = frame[i];
         img.data[i * 4 + 3] = 255; // alpha
       }
-      context.putImageData(img, 0,0);
+      context.putImageData(img, 0, 0);
     },
 
     search: function(frame, width, height) {
-      var kNoBlobsError = -1;
-      var kTooManyBlobsError = -2;
-      var kWrongGeometryError = -3;
-      var kMaxBlobsToFind = 30;
-      //var kBlobsSearchBorder = 20;
-      var kBlobsSearchBorder = 20;
-      var kMinBlobsFound = 2;
-      var kMaxBlobsFound = 25;
-      // var kMinEyeXSep = 40;
-      // var kMaxEyeXSep = 60;
-      // var kMaxEyeYSep = 40;
 
-      var kMinEyeXSep = 40;
-      //var kMaxEyeXSep = 60;
-      var kMaxEyeXSep = 100;
-      //var kMaxEyeYSep = 40;
-      var kMaxEyeYSep = 100;
+      // store local instance of settings
+      // @todo(matt) this should be re-factored so that
+      // its done one time on track (which is out init) 
+      var settings = this.settings;
+
+      // given x and y of a pixel, find it's position within a char array
 
       function pixel(x, y) {
         if (x < 0 || x >= width || y < 0 || y >= height) {
@@ -87,6 +73,8 @@ and here: https://github.com/rehabstudio/blink-detect
       }
 
       // Heuristic to trace the perimeter of a blob of pixels
+      // its close enough for our needs
+      // and fast performing 
 
       function tracePerim(i, j) {
         x = i;
@@ -211,10 +199,12 @@ and here: https://github.com/rehabstudio/blink-detect
       }
 
       // Find blobs
+      // settings.kBlobsSearchBorder is the area within the camera
+      // that we search within? Smaller numbers should be better performance 
       var blobs = new Array();
-      for (h = kBlobsSearchBorder; h < height - kBlobsSearchBorder; h++) {
-        if (blobs.length >= kMaxBlobsToFind) break;
-        for (j = kBlobsSearchBorder; j < width - kBlobsSearchBorder; j++) {
+      for (h = settings.kBlobsSearchBorder; h < height - settings.kBlobsSearchBorder; h++) {
+        if (blobs.length >= settings.kMaxBlobsToFind) break;
+        for (j = settings.kBlobsSearchBorder; j < width - settings.kBlobsSearchBorder; j++) {
           if (pixel(j, h) == 0 && pixel(j, h - 1) != 0) {
             var temp = tracePerim(j, h);
             xmin = temp.xmin;
@@ -228,18 +218,22 @@ and here: https://github.com/rehabstudio/blink-detect
                 xmax: xmax,
                 ymax: ymax
               });
-              if (blobs.length >= kMaxBlobsToFind) break;
+              if (blobs.length >= settings.kMaxBlobsToFind) break;
             }
           }
         }
       }
 
-      // Sort blobs
-      if (blobs.length < kMinBlobsFound) {
-        return [kNoBlobsError, "No blobs"];
-      } else if (blobs.length > kMaxBlobsFound) {
-        return [kTooManyBlobsError, "Too many blobs"];
+      // check for too many or not enough blobs
+      // if this is the case then return with the proper
+      // res code right away. No need to run further maths.
+      if (blobs.length < settings.kMinBlobsFound) {
+        return [settings.kNoBlobsError, "No blobs"];
+      } else if (blobs.length > settings.kMaxBlobsFound) {
+        return [settings.kTooManyBlobsError, "Too many blobs"];
       }
+
+      // sorting by something! 
       blobs.sort(function(a, b) {
         (b.xmax - b.xmin) * (b.ymax - b.ymin) - (a.xmax - a.xmin) * (a.ymax - a.ymin)
       });
@@ -248,11 +242,10 @@ and here: https://github.com/rehabstudio/blink-detect
       xSep = Math.abs((blobs[0].xmax + blobs[0].xmin) - (blobs[1].xmax + blobs[1].xmin)) / 2;
       ySep = Math.abs((blobs[0].ymax + blobs[0].ymin) - (blobs[1].ymax + blobs[1].ymin)) / 2;
 
-  console.log("Geometry is, xSep:" + xSep + ", ySep:" + ySep);
-
-
-      if (xSep < kMinEyeXSep || xSep > kMaxEyeXSep || ySep > kMaxEyeYSep) {
-        return [kWrongGeometryError, "Geometry off, xSep:" + xSep + ", ySep:" + ySep];
+      // we check geometry because eyes are generally a certain 
+      // distance apart and are generally level. 
+      if (xSep < settings.kMinEyeXSep || xSep > settings.kMaxEyeXSep || ySep > settings.kMaxEyeYSep) {
+        return [settings.kWrongGeometryError, "Geometry off, xSep:" + xSep + ", ySep:" + ySep];
       }
 
       // Find which eye is which
@@ -267,13 +260,13 @@ and here: https://github.com/rehabstudio/blink-detect
       // Expand bounding boxes
       dx = 3;
       dy = 3;
+
+      // return array with eye positions and maths
       return [0, blobs[l].xmin - dx, blobs[l].ymin - dy, blobs[l].xmax + dx, blobs[l].ymax + dy, blobs[r].xmin - dx, blobs[r].ymin - dy, blobs[r].xmax + dx, blobs[r].ymax + dy];
     },
 
     track: function(trackerGroup, video) {
       var instance = this,
-        // Human tracking finds multiple targets, doesn't need to support
-        // multiple track listeners, force to use only the first configuration.
         config = trackerGroup[0],
         defaults = instance.defaults,
         imageData = video.getVideoCanvasImageData(),
@@ -282,6 +275,11 @@ and here: https://github.com/rehabstudio/blink-detect
         canvas = video.canvas,
         height = canvas.get('height'),
         width = canvas.get('width');
+
+      // update instance settings with optional
+      // settings hash from user
+      instance.settings = tracking.merge(instance.defaults, config.settings);
+      var settings = instance.settings;
 
       // get current frame
       var currentFrame = imageData;
@@ -302,15 +300,27 @@ and here: https://github.com/rehabstudio/blink-detect
       // save current frame for comparison in next track
       instance.lastFrame = currentFrame;
 
+      // search for eyes!
+      // res will be array where fist item indicates
+      // status ad defined in out settings. 
       var res = instance.search(diffFramePixelArray, width, height);
 
-      if (res[0] !== -1 && res[0] !== -2) {
-        //console.log(res);
+      // not a blink!
+      // no blobs or too many blobs! 
+      if (res[0] === settings.kNoBlobsError || res[0] === settings.kTooManyBlobsError) {
+
       }
 
-      if (res[0] === 0) {
-        console.log('BLINK!!!');
-        
+      // wrong eye geometry
+      // there is movement but the blobs are not in the proper
+      // places so they are most likely not eyes. 
+      else if (res[0] === settings.kWrongGeometryError) {
+
+      }
+
+      // a blink!
+      // apply our onFound function if set in config
+      else if (res[0] === 0) {
         if (config.onFound) {
           var trackRes = {
             rightEye: {
