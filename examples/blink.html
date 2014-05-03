@@ -39,47 +39,62 @@
     var videoCamera = new tracking.VideoCamera().hide().render().renderVideoCanvas(),
         ctx = videoCamera.canvas.context;
 
-        $('#blink').hide();
+    $('#blink').hide();
 
     videoCamera.track({
         type: 'blink',
-        // settings: {
-        //     kMaxBlobsToFind: 30,
-        //     kBlobsSearchBorder: 20,
-        //     kMinBlobsFound: 2,
-        //     kMaxBlobsFound: 25,
-
-        //     kMinEyeXSep: 40, // default 40
-        //     kMaxEyeXSep: 100, // default 60
-        //     kMaxEyeYSep: 100 // default 40
-        // },
-        settings: {
+        __settings: {
+            name: 'night',
             kMaxBlobsToFind: 30,
-            kBlobsSearchBorder: 20, // higher number, less accurate
-            kMinBlobsFound: 2, // 1 throws errors because we access [1]
-            
-            // if set too high, drastic movements will trigger
-            kMaxBlobsFound: 25, 
+            kBlobsSearchBorder: 20,
+            kMinBlobsFound: 2,
+            kMaxBlobsFound: 25,
 
-            kMinEyeXSep: 40, // default 40
-            kMaxEyeXSep: 100, // default 60
-            kMaxEyeYSep: 100 // default 40
+            kMinEyeXSep: 40,
+            kMaxEyeXSep: 100,
+            kMaxEyeYSep: 100
+        },
+        settings: {
+            name: 'general',
+            kMaxBlobsToFind: 30,
+            kBlobsSearchBorder: 2,
+            kMinBlobsFound: 2,
+            kMaxBlobsFound: 25,
+            kMinEyeXSep: 50,
+            kMaxEyeXSep: 120,
+            kMaxEyeYSep: 100
+        },
+        __settings: {
+            name: 'sensitive',
+            kMaxBlobsToFind: 30,
+            kBlobsSearchBorder: 2,
+            kMinBlobsFound: 2,
+            kMaxBlobsFound: 25,
+            kMinEyeXSep: 20,
+            kMaxEyeXSep: 200,
+            kMaxEyeYSep: 10
+        },
+
+        // add onLoop method which runs in sync with request animation frame
+        onNotFound: function(code, message) {
+            console.log(message);
         },
         onFound: function(track) {
             if (track) {
 
                 $('#blink').show();
+                $('body').css('background', 'red');
                 console.log("Something found! ", track);
 
                 var time;
-                clearTimeout(time);
+                clearTimeout(time); // clear out timeout
 
                 time = setTimeout(function() {
                     clearTimeout(time);
                     $('#blink').hide();
-                }, 800);
+                    $('body').css('background', 'white');
+                }, 400);
 
-                ctx.strokeStyle = "rgb(0,255,0)";
                 ctx.strokeRect(track.leftEye.x,
                     track.leftEye.y,
                     track.leftEye.width,
@@ -90,12 +105,23 @@
                     track.rightEye.width,
                     track.rightEye.height);
 
+                // ctx.strokeStyle = "rgb(0,255,0)";
+                // ctx.strokeRect(track.leftEye.x,
+                //     track.leftEye.y,
+                //     track.leftEye.width,
+                //     track.leftEye.height);
+
+                // ctx.strokeRect(track.rightEye.x,
+                //     track.rightEye.y,
+                //     track.rightEye.width,
+                //     track.rightEye.height);
+
             }
         }
     });
     </script>
 
-    
+
 
 </body>
 

@@ -16,18 +16,27 @@
     NAME: 'BLINK',
 
     defaults: {
+      
+      // error codes. In general don't change these
       kNoBlobsError: -1,
       kTooManyBlobsError: -2,
       kWrongGeometryError: -3,
 
       kMaxBlobsToFind: 30,
+
+      // higher number, less accurate
       kBlobsSearchBorder: 20,
-      kMinBlobsFound: 2,
+      
+      // 1 throws errors because we need at least 2 blobs
+      // so we can compare their positions
+      kMinBlobsFound: 2, 
+
+      // if set too high, drastic movements will trigger
       kMaxBlobsFound: 25,
 
       kMinEyeXSep: 40, // default 40
-      kMaxEyeXSep: 100, // default 60
-      kMaxEyeYSep: 100 // default 40
+      kMaxEyeXSep: 60, // default 60
+      kMaxEyeYSep: 40 // default 40
     },
 
     // thresholds 
@@ -40,8 +49,10 @@
 
         newFrame[i] = (red + green + blue) / 3;
 
+        var thres = 20;
+
         // Threshold and invert
-        newFrame[i] = newFrame[i] > 20 ? 0 : 255;
+        newFrame[i] = newFrame[i] > thres ? 0 : 255;
       }
       return newFrame;
     },
@@ -204,7 +215,9 @@
       // that we search within? Smaller numbers should be better performance 
       var blobs = [];
       for (var h = settings.kBlobsSearchBorder; h < height - settings.kBlobsSearchBorder; h++) {
-        if (blobs.length >= settings.kMaxBlobsToFind) break;
+        if (blobs.length >= settings.kMaxBlobsToFind) {
+          break;
+        }
         for (var j = settings.kBlobsSearchBorder; j < width - settings.kBlobsSearchBorder; j++) {
           if (pixel(j, h) === 0 && pixel(j, h - 1) !== 0) {
             var temp = tracePerim(j, h);
@@ -234,7 +247,8 @@
         return [settings.kTooManyBlobsError, 'Too many blobs'];
       }
 
-      // sorting by something! 
+      //sorting by something! 
+      // this is an array of blobs
       blobs.sort(function(a, b) {
         return (b.xmax - b.xmin) * (b.ymax - b.ymin) - (a.xmax - a.xmin) * (a.ymax - a.ymin);
       });
@@ -244,7 +258,6 @@
       var yNum = Math.abs((blobs[0].ymax + blobs[0].ymin) - (blobs[1].ymax + blobs[1].ymin));
       var xSep = xNum / 2;
       var ySep = yNum / 2;
-      console.log(xNum, yNum);
 
       // we check geometry because eyes are generally a certain 
       // distance apart and are generally level. 
@@ -289,12 +302,9 @@
       // get current frame
       var currentFrame = imageData;
 
-      // store the last frame on first run of track
-      // without this our diffImage fn will throw error
-      // @todo(matt) optimize this
-
+      // prevent error on first loop, where the lastFrame will
+      // never be defined since it is running for first time. 
       if (instance.lastFrame === undefined) {
-        console.log(instance.lastFrame);
         instance.lastFrame = currentFrame;
         return;
       }
@@ -315,18 +325,24 @@
       // not a blink!
       // no blobs or too many blobs! 
       if (res[0] === settings.kNoBlobsError) {
-        //console.log("no blobs");
+        if (config.onNotFound) {
+          config.onNotFound.call(video, res[0], res[1]);
+        }
       }
 
       else if(res[0] === settings.kTooManyBlobsError) {
-        //console.log("too many!");
+        if (config.onNotFound) {
+          config.onNotFound.call(video, res[0], res[1]);
+        }
       }
 
       // wrong eye geometry
       // there is movement but the blobs are not in the proper
       // places so they are most likely not eyes. 
       else if (res[0] === settings.kWrongGeometryError) {
-        console.log("wrong geometry", res[1]);
+        if (config.onNotFound) {
+          config.onNotFound.call(video, res[0], res[1]);
+        }
       }
 
       // a blink!
@@ -350,7 +366,10 @@
 
           config.onFound.call(video, trackRes);
         }
-
+      } else {
+        if (config.onNotFound) {
+          config.onNotFound.call(video, 'unknown error');
+        }
       }
     }
   };
